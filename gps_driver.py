@@ -10,22 +10,20 @@ class GPSReceive:
         self.data = {}
         self.NUM_NMEA_SENTENCES = 6
         
-    def checksum(self, nmea_sentence):
+    def _checksum(self, nmea_sentence):
         checksum = 0
         checksum_pos = nmea_sentence.find(b'*')
-        
-        if nmea_sentence[0] == 36:
-            nmea_sentence_stripped = nmea_sentence[1:checksum_pos]
+        nmea_sentence_stripped = nmea_sentence[1:checksum_pos]
             
-            for i in nmea_sentence_stripped:
-                checksum ^= i
-            checksum = ("%02X"%checksum).encode('utf-8')
+        for i in nmea_sentence_stripped:
+            checksum ^= i
+        checksum = ("%02X"%checksum).encode('utf-8')
 
-            if nmea_sentence[checksum_pos+1:checksum_pos+3] == checksum:
-                return True
+        if nmea_sentence[checksum_pos+1:checksum_pos+3] == checksum:
+            return True
         return False
         
-    def update_data(self):
+    def _update_data(self):
         num_sentences_read = 0
         
         while num_sentences_read < self.NUM_NMEA_SENTENCES:
@@ -38,7 +36,7 @@ class GPSReceive:
                 if data_byte:
                     new_data += data_byte
             
-            if self.checksum(new_data):
+            if self._checksum(new_data):
                 try:
                     new_data = new_data.decode('utf-8')
                 except UnicodeError:
@@ -49,29 +47,29 @@ class GPSReceive:
     
     def position(self):
         try:
-            self.update_data()
+            self._update_data()
         except StreamDecodingError:
-            self.update_data()
+            self._update_data()
             
         try:
-            gga_sentence = self.data["GLL"].split(",")
+            gll_sentence = self.data["GLL"].split(",")
         except KeyError:
             return None
         # potential for there to be no GLL sentence, especially at first run of update_data code
         
         # checking status flag before extracting lat/long/timestamp
-        if nmea_sentence[6] == "A":
-            pos_minutes = nmea_sentence[1].find(".")-2
-            minutes = float(nmea_sentence[1][pos_minutes:])
-            degrees = int(nmea_sentence[1][:pos_minutes])
-            lat = str(degrees+minutes/60) + nmea_sentence[2]
+        if gll_sentence[6] == "A":
+            pos_minutes = gll_sentence[1].find(".")-2
+            minutes = float(gll_sentence[1][pos_minutes:])
+            degrees = int(gll_sentence[1][:pos_minutes])
+            lat = str(degrees+minutes/60) + gll_sentence[2]
             
-            pos_minutes = nmea_sentence[3].find(".")-2
-            minutes = float(nmea_sentence[3][pos_minutes:])
-            degrees = int(nmea_sentence[3][:pos_minutes])
-            long = str(degrees+minutes/60) + nmea_sentence[4]
+            pos_minutes = gll_sentence[3].find(".")-2
+            minutes = float(gll_sentence[3][pos_minutes:])
+            degrees = int(gll_sentence[3][:pos_minutes])
+            long = str(degrees+minutes/60) + gll_sentence[4]
             
-            time_utc = nmea_sentence[5]
+            time_utc = gll_sentence[5]
             time_stamp = time_utc[:2] + ":" + time_utc[2:4] + ":" + time_utc[4:]
             
             return lat, long, time_stamp
@@ -79,42 +77,42 @@ class GPSReceive:
         
     def velocity(self):
         try:
-            self.update_data()
+            self._update_data()
         except StreamDecodingError:
-            self.update_data()
+            self._update_data()
             
         try:
             rmc_sentence = self.data["RMC"].split(",")
         except KeyError:
             return None
         
-        if nmea_sentence[2] == "A":
-            time_utc = nmea_sentence[1]
+        if rmc_sentence[2] == "A":
+            time_utc = rmc_sentence[1]
             time_stamp = time_utc[:2] + ":" + time_utc[2:4] + ":" + time_utc[4:]
             
-            sog = nmea_sentence[7] + "Kn"
-            cog = nmea_sentence[8] + "°"
-            mag_variation = nmea_sentence[10]+nmea_sentence[11]
+            sog = rmc_sentence[7] + "Kn"
+            cog = rmc_sentence[8] + "°"
+            mag_variation = rmc_sentence[10]+rmc_sentence[11]
             
             return sog, cog, mag_variation, time_stamp
         return None
 
     def altitude(self):
         try:
-            self.update_data()
+            self._update_data()
         except StreamDecodingError:
-            self.update_data()
+            self._update_data()
             
         try:
             gga_sentence = self.data["GGA"].split(",")
         except KeyError:
             return None
         
-        if nmea_sentence[6] != "0":
-            alt = nmea_sentence[9] + "M AMSL"
-            geo_sep = nmea_sentence[11] + "M"
+        if gga_sentence[6] != "0":
+            alt = gga_sentence[9] + "M AMSL"
+            geo_sep = gga_sentence[11] + "M"
             
-            time_utc = nmea_sentence[1]
+            time_utc = gga_sentence[1]
             time_stamp = time_utc[:2] + ":" + time_utc[2:4] + ":" + time_utc[4:]
             
             return alt, geo_sep, time_stamp
@@ -122,9 +120,9 @@ class GPSReceive:
     
     def get_data(self):
         try:
-            self.update_data()
+            self._update_data()
         except StreamDecodingError:
-            self.update_data()
+            self._update_data()
         
         try:
             gga_sentence = self.data["GGA"].split(",")
@@ -156,9 +154,9 @@ class GPSReceive:
             return lat, long, sog, cog, mag_variation, alt, geo_sep, time_stamp
         return None
 
-
-gps = GPSReceive(10, 9)
-while True:
-    formatted_data = gps.get_data()
-    if formatted_data:
-        print(formatted_data)
+if __name__ == "__main__":
+    gps = GPSReceive(10, 9)
+    while True:
+        formatted_data = gps.get_data()
+        if formatted_data:
+            print(formatted_data)
