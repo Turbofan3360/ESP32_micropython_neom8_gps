@@ -1,4 +1,4 @@
-# ESP32 Micropython NEO-M8 GPS DRIVER #
+# ESP32 Micropython NEO-M8 GPS Driver #
 
 ### THE CODE: ###
 
