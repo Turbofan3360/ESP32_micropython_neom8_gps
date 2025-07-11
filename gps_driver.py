@@ -134,8 +134,8 @@ class GPSReceive:
     
     def getdata(self):
         lat, long, position_error, timestamp = self.position()
-        sog, cog, mag_variation, _ = self.velocity(data_needs_updating=False)
-        alt, geo_sep, vertical_error, _ = self.altitude(data_needs_updating=False)
+        sog, cog, mag_variation, timestamp = self.velocity(data_needs_updating=False)
+        alt, geo_sep, vertical_error, timestamp = self.altitude(data_needs_updating=False)
         
         total_error = 2 * sqrt(position_error*position_error + vertical_error*vertical_error) # Combining errors into one 3D error. * 2 to get to ~95% confidence level (2 sigma)
 
