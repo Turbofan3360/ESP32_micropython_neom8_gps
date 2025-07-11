@@ -2,11 +2,15 @@
 
 ### The Code: ###
 
-This code reads data off of a UART pin on the ESP32. The Neo-M8 modules outputs NMEA sentences, which this code then converts into the useful data needed. Note that all outputs are as strings with their correct units. Currently, it just uses the standard module data update rate - 1Hz. In future, I hope to add the ability to change this!
+This code reads data off of a UART pin on the ESP32. The Neo-M8 modules outputs NMEA sentences, which this code then converts into the useful data needed. Note that all outputs are as strings with their correct units. 
+
+As standard, the module updates its navigation fixes at a rate of 1Hz. This can be changed by calling the setrate() method, which takes two arguments: the first is the navigation solution update rate, while the second is the number of measurements per navigation solution.
 
 The getdata() method is an aggregator - it calls the other methods (ensuring that they only process the NMEA sentences from one data frame). This returns all the data you can get from the module - including a combined, 3D position error to a 2σ confidence level. Other errors (returned from the position and altitude methods) are only to a 1σ confidence level.
 
 If there are any issues with the data (i.e. the code can't process it), integer zeros will be returned for those values.
+
+The code automatically disables the VTG NMEA sentence type, as it contains data that is duplicated in other NMEA sentences - and so is redundant.
 
 ### Example Usage: ###
 
@@ -14,6 +18,7 @@ If there are any issues with the data (i.e. the code can't process it), integer 
 import gps_reading_data.py as gps
 
 module = gps.GPSReceive(10, 9)
+module.setrate(2, 3)
 
 lat, long, position_error, time_stamp = module.position()
 sog, cog, mag_variation, time_stamp = module.velocity()
@@ -34,10 +39,6 @@ GSA: error in satellite positions
 RMC: time, status, lat, NS, lon, EW, spd, cog, date, mv, mvEW, posMode, navStatus
 
 mv = magnetic variation, cog = course over ground, spd = speed
-
-VTG: cogt, cogtUnit, cogm, cogmUnit, sogn, sognUnit, sogk, sogkUnit, posMode
-
-cogt/m = course over gound true/magnetic, first sign is in knots and second in km/h
 
 GGA: time, lat, NS,l on, EW, quality, numSV, HDOP, alt, altUnit, sep, sepUnit, diffAge, diffStation
 
