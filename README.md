@@ -1,6 +1,6 @@
 # ESP32 Micropython NEO-M8 GPS Driver #
 
-### THE CODE: ###
+### The Code: ###
 
 This code reads data off of a UART pin on the ESP32. The Neo-M8 modules outputs NMEA sentences, which this code then converts into the useful data needed. Note that all outputs are as strings with their correct units. Currently, it just uses the standard module data update rate - 1Hz. In future, I hope to add the ability to change this!
 
@@ -8,7 +8,7 @@ The getdata() method is an aggregator - it calls the other methods (ensuring tha
 
 If there are any issues with the data (i.e. the code can't process it), integer zeros will be returned for those values.
 
-### EXAMPLE USAGE: ###
+### Example Usage: ###
 
 ```python3
 import gps_reading_data.py as gps
@@ -25,7 +25,7 @@ lat, long, alt, total_error, sog, cog, mag_variation, geo_sep, timestamp = modul
 
 For the initialization - the parameters the driver expects is the ESP32 pin that the GPS' TX pin is connected to, followed by the pin the GPS' RX pin is connected to.
 
-### NMEA SENTENCE TYPES: ###
+### NMEA Sentence Types & Details: ###
 
 GSV: positions of satellites in view
 GLL: lat,NS,lon,EW,time,status,posMode
@@ -56,6 +56,6 @@ quality flags (GGA): 0 - no pos fix/GNSS fix but user limits exceeded
 5 - RTK float, 4 - RTK fixed
 1/2 (1 = autonomous GNSS, 2 = differential GNSS) - 2D/3D GNSS fix/combined GNSS and dead reckoning fix
 
-### REFERENCES: ###
+### References: ###
  - <https://content.u-blox.com/sites/default/files/NEO-M8-FW3_DataSheet_UBX-15031086.pdf>
  - <https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf>
