@@ -1,11 +1,14 @@
 from machine import UART
 from math import sqrt
+import time, struct
 
 class GPSReceive:
     def __init__(self, rx_pin, tx_pin):
         self.gps = UART(2, baudrate=9600, tx=tx_pin, rx=rx_pin)
         
         self.data = {}
+        
+        self._disable_vtg_sentence()
     
     def _checksum(self, nmea_sentence):
         checksum = 0
@@ -19,11 +22,17 @@ class GPSReceive:
         if nmea_sentence[checksum_pos+1:checksum_pos+3] == checksum:
             return True
         return False
+    
+    def _disable_vtg_sentence(self):
+        # Uses UBX-CFG-MSG sentence to disable the VTG NMEA sentence
+        packet = b'\xb5\x62\x06\x01\x03\x00\xF0\x05\x00\xff\x19'
+        # Writing sentence
+        self.gps.write(packet)
         
     def _update_data(self):
         num_sentences_read = 0
         
-        while num_sentences_read < 6:
+        while num_sentences_read < 5:
             new_data = self.gps.read(1)
             while new_data != b'$':
                 new_data = self.gps.read(1)
@@ -134,15 +143,46 @@ class GPSReceive:
     
     def getdata(self):
         lat, long, position_error, timestamp = self.position()
-        sog, cog, mag_variation, timestamp = self.velocity(data_needs_updating=False)
-        alt, geo_sep, vertical_error, timestamp = self.altitude(data_needs_updating=False)
+        sog, cog, mag_variation, _ = self.velocity(data_needs_updating=False)
+        alt, geo_sep, vertical_error, _ = self.altitude(data_needs_updating=False)
         
         total_error = 2.45 * sqrt(position_error*position_error + vertical_error*vertical_error) # Combining errors into one 3D error. * 2.45 to get to ~95% confidence level (2 sigma)
-
+        
         return lat, long, alt, total_error, sog, cog, mag_variation, geo_sep, timestamp
+    
+    def _ubx_checksum(self, ubx_packet):
+        ck_a = ck_b = 0
+        
+        for byte in ubx_packet:
+            ck_a += byte
+            ck_b += ck_a
+            
+        ck_a &= 0xFF
+        ck_b &= 0xFF
+        
+        return ck_a, ck_b
+    
+    def setrate(self, rate, measurements_per_nav_solution):
+        measurement_time_delta_ms = int(1000/rate)
+        # Packing up the key settings that need changing
+        measurement_time_delta_ms = struct.pack("<H", measurement_time_delta_ms)
+        measurements_per_nav_solution = struct.pack("<H", measurements_per_nav_solution)
+        
+        packet = b'\x06\x08\x06\x00' + measurement_time_delta_ms + measurements_per_nav_solution + b'\x00\x00'
+        # Getting checksums
+        ck_a, ck_b = self._ubx_checksum(packet)
+        ck_a = struct.pack("<B", ck_a)
+        ck_b = struct.pack("<B", ck_b)
+        
+        packet += ck_a+ck_b
+        # Adding header
+        packet = b'\xb5\x62' + packet
+        
+        self.gps.write(packet)
 
 if __name__ == "__main__":
     gps = GPSReceive(10, 9)
+    gps.setrate(2, 3)
     while True:
         lat, long, alt, total_error, sog, cog, mag_variation, geo_sep, timestamp = gps.getdata()
         print(lat, long, alt, total_error, sog, cog, mag_variation, geo_sep, timestamp)
