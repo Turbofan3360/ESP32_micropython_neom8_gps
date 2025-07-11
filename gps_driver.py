@@ -137,7 +137,7 @@ class GPSReceive:
         sog, cog, mag_variation, timestamp = self.velocity(data_needs_updating=False)
         alt, geo_sep, vertical_error, timestamp = self.altitude(data_needs_updating=False)
         
-        total_error = 2 * sqrt(position_error*position_error + vertical_error*vertical_error) # Combining errors into one 3D error. * 2 to get to ~95% confidence level (2 sigma)
+        total_error = 2.45 * sqrt(position_error*position_error + vertical_error*vertical_error) # Combining errors into one 3D error. * 2.45 to get to ~95% confidence level (2 sigma)
 
         return lat, long, alt, total_error, sog, cog, mag_variation, geo_sep, timestamp
 
