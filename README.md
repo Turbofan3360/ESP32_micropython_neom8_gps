@@ -2,10 +2,11 @@
 
 ### THE CODE: ###
 
-This code reads data off of a UART pin on the ESP32. The Neo-M8 modules outputs NMEA sentences, which this code then converts into the useful data needed. Note that all outputs are as strings.
+This code reads data off of a UART pin on the ESP32. The Neo-M8 modules outputs NMEA sentences, which this code then converts into the useful data needed. Note that all outputs are as strings with their correct units. Currently, it just uses the standard module data update rate - 1Hz. In future, I hope to add the ability to change this!
 
-Note: There is an occasional bug with the decoding that I can’t figure out (it only says UnicodeError: ). I will come back to this driver code in future and hopefully solve it!
-There is also additional functionality I will add to this module at some point in the future.
+The getdata() method is an aggregator - it calls the other methods (ensuring that they only process the NMEA sentences from one data frame). This returns all the data you can get from the module - including a combined, 3D position error to a 2σ confidence level. Other errors (returned from the position and altitude methods) are only to a 1σ confidence level.
+
+If there are any issues with the data (i.e. the code can't process it), integer zeros will be returned for those values.
 
 ### EXAMPLE USAGE: ###
 
@@ -14,15 +15,15 @@ import gps_reading_data.py as gps
 
 module = gps.GPSReceive(10, 9)
 
-latitude, longitude, timestamp = module.position()
-sog, cog, magnetic_variation, timestamp = module.velocity()
-altitude, geoid_separation, timestamp = module.altitude()
+lat, long, position_error, time_stamp = module.position()
+sog, cog, mag_variation, time_stamp = module.velocity()
+alt, geo_sep, vertical_error, time_stamp = module.altitude()
 
-latitude, longitude, sog, cog, magnetic_variation, altitude, geoid_separation, timestamp = module.get_data()
+lat, long, alt, total_error, sog, cog, mag_variation, geo_sep, timestamp = module.get_data()
 
 ```
 
-For the initialization - the parameters the driver expects is the TX pin number, followed by the RX pin number.
+For the initialization - the parameters the driver expects is the ESP32 pin that the GPS' TX pin is connected to, followed by the pin the GPS' RX pin is connected to.
 
 ### NMEA SENTENCE TYPES: ###
 
